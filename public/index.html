@@ -1,0 +1,123 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Controle de Animais</title>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    form, table { margin-bottom: 30px; }
+    input, select, textarea { margin: 5px 0; padding: 5px; width: 100%; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    ul { list-style-type: none; padding-left: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Cadastro de Animal</h1>
+  <form id="form-animal">
+    <input type="text" name="anilha" placeholder="Número da Anilha" required><br>
+    <input type="text" name="nome" placeholder="Nome do Animal"><br>
+    <select name="sexo">
+      <option value="">Sexo</option>
+      <option value="Macho">Macho</option>
+      <option value="Fêmea">Fêmea</option>
+    </select><br>
+    <input type="date" name="nascimento"><br>
+    <input type="text" name="raca" placeholder="Raça"><br>
+    <input type="text" name="cor" placeholder="Cor"><br>
+    <input type="text" name="criador" placeholder="Criador"><br>
+    <input type="text" name="proprietario" placeholder="Proprietário"><br>
+    <input type="number" name="pai_id" placeholder="ID do Pai"><br>
+    <input type="number" name="mae_id" placeholder="ID da Mãe"><br>
+    <input type="file" id="foto-file"><br>
+    <input type="hidden" name="foto" id="foto-url">
+    <textarea name="observacoes" placeholder="Observações"></textarea><br>
+    <button type="submit">Cadastrar</button>
+  </form>
+
+  <button onclick="baixarCSV()">📥 Exportar para CSV</button>
+
+  <h2>Animais Cadastrados</h2>
+  <table id="tabela-animais">
+    <thead>
+      <tr>
+        <th>ID</th><th>Anilha</th><th>Nome</th><th>Raça</th><th>Sexo</th><th>Ação</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div id="genealogia"></div>
+
+  <script>
+    document.getElementById('form-animal').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const fotoInput = document.getElementById('foto-file');
+      let fotoURL = '';
+      if (fotoInput.files.length > 0) {
+        const formFoto = new FormData();
+        formFoto.append('foto', fotoInput.files[0]);
+        const uploadRes = await fetch('/upload', { method: 'POST', body: formFoto });
+        const uploadData = await uploadRes.json();
+        fotoURL = uploadData.url;
+      }
+      const formData = Object.fromEntries(new FormData(e.target));
+      formData.foto = fotoURL;
+      const res = await fetch('/animais', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      if (res.ok) { alert('Animal cadastrado!'); e.target.reset(); carregarAnimais(); }
+      else alert('Erro ao cadastrar');
+    });
+
+    async function carregarAnimais() {
+      const res = await fetch('/animais');
+      const dados = await res.json();
+      const tbody = document.querySelector('#tabela-animais tbody');
+      tbody.innerHTML = '';
+      dados.forEach(animal => {
+        const row = `<tr>
+          <td>${animal.id}</td>
+          <td>${animal.anilha}</td>
+          <td>${animal.nome}</td>
+          <td>${animal.raca}</td>
+          <td>${animal.sexo}</td>
+          <td><button onclick="verGenealogia(${animal.id})">Ver Genealogia</button></td>
+        </tr>`;
+        tbody.innerHTML += row;
+      });
+    }
+
+    async function verGenealogia(id) {
+      const res = await fetch(`/genealogia/${id}`);
+      const data = await res.json();
+      const container = document.getElementById('genealogia');
+      container.innerHTML = '<h3>Árvore Genealógica</h3>' + renderTree(data);
+    }
+
+    function renderTree(animal) {
+      if (!animal) return '';
+      return `
+        <ul>
+          <li><strong>${animal.nome || 'Sem nome'} (#${animal.id})</strong>
+            <div style="margin-left:20px">
+              <div>Pai: ${renderTree(animal.pai)}</div>
+              <div>Mãe: ${renderTree(animal.mae)}</div>
+            </div>
+          </li>
+        </ul>
+      `;
+    }
+
+    function baixarCSV() {
+      window.location.href = '/exportar';
+    }
+
+    carregarAnimais();
+  </script>
+</body>
+</html>
