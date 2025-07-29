@@ -28,7 +28,7 @@ app.post('/animais', async (req, res) => {
   const { anilha, nome, sexo, nascimento, raca, cor, criador, proprietario, pai_id, mae_id, foto, observacoes } = req.body;
   try {
     const result = await pool.query(
-      \`INSERT INTO animais (anilha, nome, sexo, nascimento, raca, cor, criador, proprietario, pai_id, mae_id, foto, observacoes)
+      `INSERT INTO animais (anilha, nome, sexo, nascimento, raca, cor, criador, proprietario, pai_id, mae_id, foto, observacoes)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *\`,
       [anilha, nome, sexo, nascimento, raca, cor, criador, proprietario, pai_id, mae_id, foto, observacoes]
     );
